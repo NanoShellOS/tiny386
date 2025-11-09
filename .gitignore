@@ -1,3 +1,5 @@
 *~
 *.o
+*.nse
+tiny386_nosdl
 .depends

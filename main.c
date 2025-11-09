@@ -791,7 +791,7 @@ PC *pc_new(SimpleFBDrawFunc *redraw, void (*poll)(void *), void *redraw_data,
 	pc->initrd = conf->initrd;
 	pc->cmdline = conf->cmdline;
 	pc->enable_serial = conf->enable_serial;
-#if !defined(_WIN32) && !defined(__wasm__)
+#if !defined(_WIN32) && !defined(__wasm__) && !defined(NANOSHELL)
 	if (pc->enable_serial)
 		CaptureKeyboardInput();
 #endif
@@ -969,6 +969,11 @@ static int load(PC *pc, const char *file, uword addr, int backward)
 static int load(PC *pc, const char *file, uword addr, int backward)
 {
 	FILE *fp = fopen(file, "rb");
+	if (!fp) {
+		perror(file);
+		fprintf(stderr, "FAILED to load %s.\n", file);
+		return 0;
+	}
 	fseek(fp, 0, SEEK_END);
 	int len = ftell(fp);
 	fprintf(stderr, "%s len %d\n", file, len);
@@ -980,6 +985,10 @@ static int load(PC *pc, const char *file, uword addr, int backward)
 	fclose(fp);
 	return len;
 }
+#endif
+
+#ifdef NANOSHELL
+#include "nanoshell_console.h"
 #endif
 
 #ifndef NOSDL
@@ -1246,6 +1255,9 @@ typedef struct {
 	u8 *fb1;
 #endif
 	u8 *fb;
+#ifdef NANOSHELL
+	void *opaque;
+#endif
 } Console;
 
 #define NN 32
@@ -1258,6 +1270,10 @@ Console *console_init(int width, int height)
 #else
 	c->fb = bigmalloc(width * height * 4);
 #endif
+#ifdef NANOSHELL
+	c->opaque = nanoshell_console_create(width, height, c->fb);
+#endif
+	
 	return c;
 }
 
@@ -1288,11 +1304,19 @@ static void redraw(void *opaque,
 static void redraw(void *opaque,
 		   int x, int y, int w, int h)
 {
+#ifdef NANOSHELL
+	Console* con = opaque;
+	nanoshell_console_redraw(con->opaque, x, y, w, h);
+#endif
 }
 #endif
 
 static void poll(void *opaque)
 {
+#ifdef NANOSHELL
+	Console* con = opaque;
+	nanoshell_console_poll(con->opaque);
+#endif
 }
 
 void console_set_audio(Console *console)
@@ -1425,6 +1449,7 @@ static int parse_conf_ini(void* user, const char* section,
 
 int main(int argc, char *argv[])
 {
+	LogMsg("Main entered!");
 	struct pcconfig conf;
 	memset(&conf, 0, sizeof(conf));
 	conf.linuxstart = "linuxstart.bin";
@@ -1440,16 +1465,20 @@ int main(int argc, char *argv[])
 	if (argc != 2)
 		return 1;
 
+	LogMsg("Parsing init!");
 	int err = ini_parse(argv[1], parse_conf_ini, &conf);
 	if (err) {
 		printf("error %d\n", err);
 		return err;
 	}
 
+	LogMsg("Creating console and stuff!");
 	Console *console = console_init(conf.width, conf.height);
 	u8 *fb = console_get_fb(console);
+	LogMsg("Creating PC!");
 	PC *pc = pc_new(redraw, poll, console, fb, &conf);
 	console->pc = pc;
+	LogMsg("Done creating PC!");
 	console_set_audio(console);
 #ifdef BUILD_ESP32
 	extern void *thepc;
@@ -1459,9 +1488,19 @@ int main(int argc, char *argv[])
 	thekbd = pc->kbd;
 	themouse = pc->mouse;
 #endif
+#ifdef NANOSHELL
+	nanoshell_console_set_ptrs(
+		console->opaque,
+		&pc->shutdown_state,
+		&pc->kbd,
+		&pc->mouse
+	);
+#endif
 
+	LogMsg("Loading BIOS and resetting!");
 	load_bios_and_reset(pc);
 
+	LogMsg("Beginning running the PC!");
 	pc->boot_start_time = get_uticks();
 	for (; pc->shutdown_state != 8;) {
 		pc_step(pc);

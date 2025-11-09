@@ -7,7 +7,7 @@
 #include <errno.h>
 
 #include <stdio.h>
-#if !defined(_WIN32) && !defined(__wasm__)
+#if !defined(_WIN32) && !defined(__wasm__) && !defined(NANOSHELL)
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <signal.h>
@@ -16,7 +16,7 @@
 #include "driver/uart.h"
 #endif
 
-#if !defined(_WIN32) && !defined(__wasm__)
+#if !defined(_WIN32) && !defined(__wasm__) && !defined(NANOSHELL)
 static void CtrlC()
 {
 	exit( 0 );
@@ -266,7 +266,7 @@ void u8250_reg_write(U8250 *uart, int off, uint8_t val)
 
 void u8250_update(U8250 *uart)
 {
-#if !defined(_WIN32) && !defined(__wasm__)
+#if !defined(_WIN32) && !defined(__wasm__) && !defined(NANOSHELL)
 	if (IsKBHit()) {
 		if (!(uart->ioready & 1)) {
 			uart->in = ReadKBByte();

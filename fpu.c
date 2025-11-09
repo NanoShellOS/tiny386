@@ -5,6 +5,10 @@
 #include <string.h>
 #include <stdlib.h>
 
+#ifdef NANOSHELL
+#include "nanoshell_math.h"
+#endif
+
 typedef struct {
 	uint32_t mant0;
 	uint32_t mant1;

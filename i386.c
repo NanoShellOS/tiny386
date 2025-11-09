@@ -3709,6 +3709,8 @@ static bool verrw_helper(CPUI386 *cpu, int sel, int wr, int *zf)
 		break; \
 	}
 
+#ifndef NANOSHELL
+
 #include <time.h>
 static uint64_t get_nticks()
 {
@@ -3717,6 +3719,25 @@ static uint64_t get_nticks()
     return ((uint64_t) ts.tv_sec * 1000000000ull +
 	    (uint64_t) ts.tv_nsec);
 }
+
+#else
+
+// just read the TSC and hope that no one asks the emulator for its frequency
+static void GetTimeStampCounter(uint32_t* high, uint32_t* low)
+{
+	int edx, eax;
+	__asm__ volatile ("rdtsc":"=a"(eax),"=d"(edx));
+	if (high) *high = edx;
+	if (low ) *low  = eax;
+}
+
+static uint64_t get_nticks() {
+	uint32_t hi, lo;
+	GetTimeStampCounter(&hi, &lo);
+	return ((uint64_t)hi << 32LL) | (uint64_t)(lo);
+}
+
+#endif // NANOSHELL
 
 #define RDTSC() \
 	uint64_t tsc = get_nticks(); \
@@ -5149,7 +5170,7 @@ void cpui386_enable_fpu(CPUI386 *cpu)
 	cpu->fpu = fpu_new();
 }
 
-#if !defined(_WIN32) && !defined(__wasm__)
+#if !defined(_WIN32) && !defined(__wasm__) && !defined(NANOSHELL)
 void cpui386_set_verbose() // for debugging
 {
 	verbose = true;

@@ -44,6 +44,10 @@
 #define g_new(t, n) psmalloc(sizeof(t) * (n))
 #define g_free(p) /*free(p)*/
 
+#ifdef NANOSHELL
+#include "nanoshell_math.h"
+#endif
+
 // TODO: free...
 #ifdef BUILD_ESP32
 void *pcmalloc(long size);

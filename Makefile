@@ -1,3 +1,28 @@
+# NanoShell
+SDK_INC_DIR=../../crt/include
+SDK_LIB_DIR=../../crt/
+
+SUPPRESSED_WARNINGS = \
+	-Wno-return-type \
+	-Wno-incompatible-pointer-types-discards-qualifiers
+
+HACKS = \
+	-Dftello=ftell \
+	-Dgmtime_r=localtime_r \
+	-DDISABLE_NET
+
+CFLAGS_PLAT=-I $(SDK_INC_DIR) -DNANOSHELL -ffreestanding -target i686-elf -nostdinc -nostdlib -mno-mmx -mno-sse -mno-sse2 -fno-pie -fno-pic $(SUPPRESSED_WARNINGS) $(HACKS)
+LIBS_PLAT=../../crt/lib/libnanoshell.a ../../crt/lib/crt1.o -T i686_link.ld -nostdlib -nostartfiles
+SRCS_PLAT=nanoshell_math.c nanoshell_console.c
+
+override CFLAGS = -O3 ${CFLAGS_PLAT}
+override LIBS = ${LIBS_PLAT}
+override PROGS = tiny386_nosdl
+
+CC=clang
+LD=ld
+
+# Original Makefile begins here
 Q ?= @
 CC ?= gcc
 SDL_CONFIG ?= sdl-config
@@ -8,26 +33,27 @@ LIBS = `${SDL_CONFIG} --libs` -lm ${LIBS_PLAT}
 SRCS = ini.c i386.c fpu.c i8259.c i8254.c ide.c vga.c i8042.c misc.c fmopl.c adlib.c ne2000.c i8257.c sb16.c pcspk.c
 SRCS += pci.c
 SRCS += win32.c
+SRCS += ${SRCS_PLAT}
 
 # slirp
-SRCS$ += \
-slirp/bootp.c \
-slirp/cksum.c \
-slirp/if.c \
-slirp/ip_icmp.c \
-slirp/ip_input.c \
-slirp/ip_output.c \
-slirp/mbuf.c \
-slirp/misc.c \
-slirp/sbuf.c \
-slirp/slirp.c \
-slirp/socket.c \
-slirp/tcp_input.c \
-slirp/tcp_output.c \
-slirp/tcp_subr.c \
-slirp/tcp_timer.c \
-slirp/cutils.c \
-slirp/udp.c
+#SRCS$ += \
+#slirp/bootp.c \
+#slirp/cksum.c \
+#slirp/if.c \
+#slirp/ip_icmp.c \
+#slirp/ip_input.c \
+#slirp/ip_output.c \
+#slirp/mbuf.c \
+#slirp/misc.c \
+#slirp/sbuf.c \
+#slirp/slirp.c \
+#slirp/socket.c \
+#slirp/tcp_input.c \
+#slirp/tcp_output.c \
+#slirp/tcp_subr.c \
+#slirp/tcp_timer.c \
+#slirp/cutils.c \
+#slirp/udp.c
 
 # OSD
 SRCS += osd/microui.c osd/osd.c
@@ -57,6 +83,7 @@ tiny386: main.c ${OBJS}
 tiny386_nosdl: main.c ${OBJS}
 	@/bin/echo -e " \e[1;32mCCLD\e[0m\t\e[1;32m->\e[0m \e[1;37m$@\e[0m"
 	${Q}${CC} -DNOSDL ${CFLAGS} -o $@ $< ${OBJS} ${LIBS}
+	${Q}cp $@ tiny386.nse
 
 tiny386_kvm: main.c kvm.c ${OBJS}
 	@/bin/echo -e " \e[1;32mCCLD\e[0m\t\e[1;32m->\e[0m \e[1;37m$@\e[0m"

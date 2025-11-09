@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#ifndef DISABLE_NET
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
@@ -938,3 +939,5 @@ NE2000State *isa_ne2000_init(int base, int irq,
 //    qemu_format_nic_info_str(s->vc, s->macaddr);
     return s;
 }
+
+#endif

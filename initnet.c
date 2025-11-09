@@ -1,3 +1,4 @@
+#ifndef DISABLE_NET
 #define _GNU_SOURCE
 #include <unistd.h>
 #include <stdio.h>
@@ -81,3 +82,5 @@ int main(int argc, char *argv[])
 	setenv("TAPFD", tapfd, 1);
 	return execvp(p, argv + 1);
 }
+
+#endif
